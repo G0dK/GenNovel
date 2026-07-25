@@ -1,0 +1,10 @@
+services:
+  gennovel:
+    build: .
+    ports:
+      - "13300:13300"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    restart: unless-stopped

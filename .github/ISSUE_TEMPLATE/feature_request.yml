@@ -1,0 +1,31 @@
+name: 功能建议
+description: 提议新的能力或工作流改进
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景与问题
+      description: 请说明目前的工作流、限制以及该问题影响的用户。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述期望行为、配置方式和交互方式。
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: 兼容性与取舍
+      description: 如涉及数据格式、依赖、模型协议或现有命令，请说明兼容性影响。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我已搜索现有 Issue 和路线说明。
+          required: true

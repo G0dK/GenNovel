@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GenNovel</title>
+<style>
+  :root {
+    --ink: #1a1712; --paper: #f5efe4; --paper-2: #ece3d2; --accent: #8c2b1e;
+    --muted: #7a6f5d; --ok: #3d6b35; --warn: #a4681a; --line: #d8ccb6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper);
+    background-image: radial-gradient(circle at 15% 10%, #fbf7ee 0%, transparent 55%),
+                      radial-gradient(circle at 90% 90%, #e6dac3 0%, transparent 50%);
+    color: var(--ink); font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 1rem; padding: 1.4rem 2rem .9rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  header h1 { margin: 0; font-size: 1.5rem; letter-spacing: .35em; }
+  header .en { color: var(--muted); font-size: .8rem; letter-spacing: .2em; }
+  header .dot { margin-left: auto; font-size: .85rem; color: var(--muted); }
+  header .dot b.on { color: var(--ok); }
+  main { display: grid; grid-template-columns: 300px 1fr; gap: 1.2rem; padding: 1.2rem 2rem 2rem; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  .card { background: rgba(255,255,255,.55); border: 1px solid var(--line); padding: 1rem 1.2rem; }
+  .card h2 { margin: 0 0 .7rem; font-size: .95rem; letter-spacing: .15em; color: var(--accent);
+             border-bottom: 1px solid var(--line); padding-bottom: .4rem; }
+  .stat { display: flex; justify-content: space-between; padding: .28rem 0; font-size: .92rem; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  .runbox { display: flex; gap: .5rem; margin-top: .8rem; }
+  .runbox input { width: 4.5rem; padding: .45rem; border: 1px solid var(--ink); background: transparent;
+                  font: inherit; text-align: center; }
+  .runbox button { flex: 1; padding: .45rem .8rem; border: 1px solid var(--ink); background: var(--ink);
+                   color: var(--paper); font: inherit; letter-spacing: .2em; cursor: pointer; }
+  .runbox button:disabled { opacity: .45; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { text-align: left; font-weight: normal; color: var(--muted); border-bottom: 1px solid var(--ink);
+       padding: .3rem .4rem; font-size: .8rem; letter-spacing: .1em; }
+  td { padding: .42rem .4rem; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  tr:hover td { background: var(--paper-2); cursor: pointer; }
+  .tag { font-size: .75rem; padding: .1rem .45rem; border: 1px solid currentColor; white-space: nowrap; }
+  .t-final { color: var(--ok); } .t-run { color: var(--warn); } .t-planned { color: var(--muted); }
+  .warn { color: var(--warn); font-size: .8rem; }
+  #log { font-family: ui-monospace, Consolas, monospace; font-size: .78rem; color: var(--muted);
+         max-height: 220px; overflow-y: auto; white-space: pre-wrap; margin: 0; }
+  #reader { position: fixed; inset: 0; background: rgba(26,23,18,.5); display: none; }
+  #reader .page { background: var(--paper); max-width: 46rem; margin: 3vh auto; padding: 2.5rem 3rem;
+                  max-height: 94vh; overflow-y: auto; box-shadow: 0 10px 60px rgba(0,0,0,.4); }
+  #reader h3 { letter-spacing: .2em; border-bottom: 2px solid var(--ink); padding-bottom: .5rem; }
+  #reader .body { line-height: 2; font-size: 1.02rem; white-space: pre-wrap; }
+  #reader .close { float: right; cursor: pointer; border: 1px solid var(--ink); padding: .1rem .6rem; }
+  .err { color: var(--accent); font-size: .85rem; margin-top: .5rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GEN NOVEL</h1><span class="en">GENNOVEL</span>
+  <span class="dot">引擎 <b id="running">…</b></span>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <h2>进 度</h2>
+      <div id="stats"></div>
+      <div class="runbox">
+        <input id="n" type="number" value="1" min="1" max="500">
+        <button id="go" onclick="startRun()">推进章节</button>
+        <button id="stop" onclick="stopRun()" style="display:none;background:var(--accent);border-color:var(--accent)">停止</button>
+      </div>
+      <div class="err" id="err"></div>
+    </div>
+    <div class="card" style="margin-top:1.2rem">
+      <h2>引擎日志</h2>
+      <pre id="log">（空）</pre>
+    </div>
+  </section>
+  <section class="card">
+    <h2>章 节</h2>
+    <table>
+      <thead><tr><th>#</th><th>标题</th><th>状态</th><th>字数</th><th>摘要 / 警告</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+</main>
+<div id="reader" onclick="this.style.display='none'">
+  <div class="page" onclick="event.stopPropagation()">
+    <span class="close" onclick="reader.style.display='none'">×</span>
+    <h3 id="rtitle"></h3><div class="body" id="rbody"></div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => (s || "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+// 服务端设置 GENNOVEL_TOKEN 时的鉴权：401 则提示输入并存 localStorage
+async function fetchJ(url, opts = {}) {
+  opts.headers = Object.assign({}, opts.headers,
+    localStorage.sf_token ? {"X-Api-Token": localStorage.sf_token} : {});
+  let r = await fetch(url, opts);
+  if (r.status === 401) {
+    const t = prompt("请输入 API Token（服务端 GENNOVEL_TOKEN）");
+    if (t) { localStorage.sf_token = t; return fetchJ(url, opts); }
+  }
+  return r;
+}
+
+async function refresh() {
+  try {
+    const s = await (await fetchJ("/api/status")).json();
+    $("running").textContent = s.running ? "运行中" : "空闲";
+    $("running").className = s.running ? "on" : "";
+    $("go").disabled = s.running;
+    $("stop").style.display = s.running ? "" : "none";
+    $("err").textContent = s.last_error ? "上次任务失败：" + s.last_error : "";
+    $("stats").innerHTML = `
+      <div class="stat"><span>书名</span><b>《${esc(s.title)}》</b></div>
+      <div class="stat"><span>完成 / 规划 / 目标</span><b>${s.final} / ${s.planned} / ${s.target_chapters}</b></div>
+      <div class="stat"><span>完成字数</span><b>${(s.words||0).toLocaleString()}</b></div>
+      <div class="stat"><span>弧数</span><b>${s.arcs}</b></div>
+      <div class="stat"><span>当前</span><b>${s.current ? "第"+s.current+"章·"+s.current_stage : "—"}</b></div>
+      <div class="stat"><span>LLM 调用</span><b>${s.usage.calls}次 / 出${(s.usage.completion_tokens||0).toLocaleString()}tk</b></div>
+      ${s.cost ? `<div class="stat"><span>估算成本</span><b>${s.cost.toFixed(2)}</b></div>` : ""}`;
+    const chs = await (await fetchJ("/api/chapters")).json();
+    $("rows").innerHTML = chs.map(c => {
+      const cls = c.status === "final" ? "t-final" : (c.status === "planned" ? "t-planned" : "t-run");
+      return `<tr onclick="openChapter(${c.idx})"><td>${c.idx}</td><td>${esc(c.title)}</td>
+        <td><span class="tag ${cls}">${c.status}</span></td><td>${c.words||""}</td>
+        <td>${esc((c.summary||"").slice(0,60))}${c.warn?`<div class="warn">⚠ ${esc(c.warn)}</div>`:""}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" style="color:var(--muted)">尚无章节，点击「推进章节」开始</td></tr>`;
+    const log = await (await fetchJ("/api/log")).json();
+    if (log.lines.length) { $("log").textContent = log.lines.slice(-40).join("\n"); $("log").scrollTop = 1e9; }
+  } catch (e) { $("running").textContent = "失联"; }
+}
+async function startRun() {
+  const r = await fetchJ("/api/run", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({chapters: parseInt($("n").value)||1})});
+  if (!r.ok) $("err").textContent = (await r.json()).detail || "启动失败";
+  refresh();
+}
+async function stopRun() {
+  await fetchJ("/api/stop", {method:"POST"});
+  refresh();
+}
+async function openChapter(idx) {
+  const c = await (await fetchJ("/api/chapters/"+idx)).json();
+  $("rtitle").textContent = `第${c.idx}章 ${c.title}`;
+  $("rbody").textContent = c.final || c.draft || "（尚未起草）";
+  $("reader").style.display = "block";
+}
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>

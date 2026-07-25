@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题私密报告
+    url: https://github.com/G0dK/GenNovel/security/advisories/new
+    about: 未修复漏洞及敏感安全问题请通过私密渠道报告。

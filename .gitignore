@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+
+# 运行时数据
+.env
+data/
+book.db
+book.db-*
+logs/
+backup-*.zip
+book.md
+book.txt

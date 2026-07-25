@@ -1,0 +1,59 @@
+[project]
+name = "gennovel"
+version = "0.2.0"
+description = "GenNovel — 高可用、可本地/服务器部署的 AI 长篇小说生产系统"
+authors = [{ name = "GenNovel contributors" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["ai", "novel", "writing", "llm", "story-generation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+gennovel = "gennovel.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/G0dK/GenNovel"
+Repository = "https://github.com/G0dK/GenNovel.git"
+Issues = "https://github.com/G0dK/GenNovel/issues"
+Changelog = "https://github.com/G0dK/GenNovel/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gennovel"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["SIM108"]  # 三元表达式非强制
+
+[tool.ruff.lint.per-file-ignores]
+"src/gennovel/cli.py" = ["B008"]  # typer 的标准参数声明方式
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
